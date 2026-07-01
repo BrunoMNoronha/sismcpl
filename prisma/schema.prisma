@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senha     String
+  perfil    String   @default("agente") // agente, admin
+  ativo     Boolean  @default(true)
+  criadoEm DateTime @default(now())
+
+  visitas VisitaCampo[]
+}
+
+model Comercio {
+  id                        Int      @id @default(autoincrement())
+  nome                      String
+  responsavel               String
+  tipo                      String
+  telefone                  String
+  endereco                  String?
+  bairro                    String?
+  latitude                  Float?
+  longitude                 Float?
+  porte                     String?  // micro, pequeno, medio
+  compraDeProdutoresLocais  Boolean  @default(false)
+  interesseEmComprarLocal   Boolean  @default(false)
+  observacoes               String?
+  ativo                     Boolean  @default(true)
+  criadoEm                  DateTime @default(now())
+  atualizadoEm              DateTime @updatedAt
+
+  demandas DemandaComercial[]
+  visitas  VisitaCampo[]
+}
+
+model Produtor {
+  id                        Int      @id @default(autoincrement())
+  nome                      String
+  nomePropriedade           String?
+  telefone                  String
+  documento                 String?
+  localidade                String
+  tamanhoPropriedade        Float?
+  tipoPropriedade           String?  // familiar, comercial, assentamento
+  latitude                  Float?
+  longitude                 Float?
+  possuiTransporte          Boolean  @default(false)
+  possuiIrrigacao           Boolean  @default(false)
+  possuiAgua                Boolean  @default(true)
+  possuiMaoDeObra           Boolean  @default(false)
+  possuiDocumentacaoVenda   Boolean  @default(false)
+  interesseVenderLocal      Boolean  @default(false)
+  observacoes               String?
+  ativo                     Boolean  @default(true)
+  criadoEm                  DateTime @default(now())
+  atualizadoEm              DateTime @updatedAt
+
+  capacidades CapacidadeProdutiva[]
+  visitas     VisitaCampo[]
+}
+
+model CategoriaProduto {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique
+  descricao String?
+  ativo     Boolean  @default(true)
+  criadoEm DateTime @default(now())
+
+  produtos Produto[]
+}
+
+model Produto {
+  id              Int      @id @default(autoincrement())
+  nome            String
+  categoriaId     Int
+  unidadeMedida   String   // kg, unidade, litro, caixa, duzia, saco
+  perecivel       Boolean  @default(false)
+  ativo           Boolean  @default(true)
+  observacoes     String?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  categoria   CategoriaProduto   @relation(fields: [categoriaId], references: [id])
+  demandas    DemandaComercial[]
+  capacidades CapacidadeProdutiva[]
+
+  @@unique([nome, unidadeMedida])
+}
+
+model DemandaComercial {
+  id                       Int      @id @default(autoincrement())
+  comercioId               Int
+  produtoId                Int
+  quantidade               Float
+  unidadeMedida            String
+  frequencia               String   // diario, semanal, quinzenal, mensal
+  quantidadeMensalEstimada Float?
+  precoMedioPago           Float?
+  origemAtual              String?  // local, regional, estadual, nacional
+  dificuldadeAbastecimento String   @default("baixa") // baixa, media, alta
+  aceitaFornecedorLocal    Boolean  @default(true)
+  precisaDeEntrega         Boolean  @default(false)
+  precisaDeNotaFiscal      Boolean  @default(false)
+  requisitos               String?
+  observacoes              String?
+  criadoEm                 DateTime @default(now())
+  atualizadoEm             DateTime @updatedAt
+
+  comercio Comercio @relation(fields: [comercioId], references: [id])
+  produto  Produto  @relation(fields: [produtoId], references: [id])
+}
+
+model CapacidadeProdutiva {
+  id                       Int      @id @default(autoincrement())
+  produtorId               Int
+  produtoId                Int
+  produzAtualmente         Boolean  @default(true)
+  poderiaProdzir           Boolean  @default(false)
+  quantidade               Float
+  unidadeMedida            String
+  frequencia               String   // diario, semanal, quinzenal, mensal
+  quantidadeMensalEstimada Float?
+  sazonalidade             String?
+  limitacoes               String?
+  necessidadeApoio         String?
+  observacoes              String?
+  criadoEm                 DateTime @default(now())
+  atualizadoEm             DateTime @updatedAt
+
+  produtor Produtor @relation(fields: [produtorId], references: [id])
+  produto  Produto  @relation(fields: [produtoId], references: [id])
+}
+
+model VisitaCampo {
+  id                   Int      @id @default(autoincrement())
+  tipoVisitado         String   // comercio, produtor
+  comercioId           Int?
+  produtorId           Int?
+  dataVisita           DateTime
+  agenteResponsavel    String
+  observacoes          String?
+  pendencias           String?
+  precisaRetorno       Boolean  @default(false)
+  dataRetornoSugerida  DateTime?
+  usuarioId            Int?
+  criadoEm             DateTime @default(now())
+  atualizadoEm         DateTime @updatedAt
+
+  comercio Comercio? @relation(fields: [comercioId], references: [id])
+  produtor Produtor? @relation(fields: [produtorId], references: [id])
+  usuario  Usuario?  @relation(fields: [usuarioId], references: [id])
+  anexos   AnexoFoto[]
+}
+
+model AnexoFoto {
+  id            Int      @id @default(autoincrement())
+  visitaId      Int
+  nomeArquivo   String
+  caminhoArquivo String
+  descricao     String?
+  criadoEm      DateTime @default(now())
+
+  visita VisitaCampo @relation(fields: [visitaId], references: [id])
+}
